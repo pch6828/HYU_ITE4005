@@ -1,10 +1,12 @@
 import sys
+import time
+from bisect import bisect_left
 
 # read input file,
 # sort each transaction (to simplify merge)
 def input_process(filename):
     file = open(filename)
-    txns = [];
+    TDB = []
 
     while True:
         line = file.readline()
@@ -12,16 +14,22 @@ def input_process(filename):
             break
         txn = list(map(int, line.split('\t')))
         txn.sort()
-        txns.append(txn)
+        TDB.append(txn)
     file.close()
-    return txns
+    return TDB
+
+# binary search in sorted list
+def search(arr, x):
+    idx = bisect_left(arr, x)
+    return idx!=len(arr) and arr[idx]==x
+        
 
 # get initial frequent pattern set
-def get_frequent_1_itemset(txns, min_sup):
-    num_txn = len(txns)
+def get_frequent_1_itemset(TDB, min_sup):
+    num_txn = len(TDB)
     cnt = {}
     patterns = {}
-    for txn in txns:
+    for txn in TDB:
         for item_id in txn:
             if not ((item_id,) in cnt):
                cnt[(item_id,)] = 0
@@ -36,8 +44,8 @@ def get_frequent_1_itemset(txns, min_sup):
 # get candidate for frequent pattern
 # k is candidate's length
 # self merge is used
-def get_candidate(patterns, k):
-    size = len(patterns)
+def get_candidate(frequent_patterns, k):
+    size = len(frequent_patterns)
     i = 0
     j = 0
     candidates = []
@@ -45,38 +53,38 @@ def get_candidate(patterns, k):
     while i < size:
         j = 0
         while j < i:
-            fp1 = patterns[i]
-            fp2 = patterns[j]
+            fp1 = frequent_patterns[i]
+            fp2 = frequent_patterns[j]
             j+=1
-            result = tuple(sorted(list(set(fp1+fp2))))
+            merged_pattern = tuple(sorted(list(set(fp1+fp2))))
 
-            if len(result)!=k:
+            if len(merged_pattern)!=k:
                 continue
             flag = 0
-            for pattern in patterns:
-                cnt = 0
-                for item in result:
-                    if item in pattern:
-                        cnt+=1
-                if cnt == k-1:
+            for pattern in frequent_patterns:
+                temp_flag = 0
+                for item in merged_pattern:
+                    if search(pattern, item):
+                        temp_flag+=1
+                if temp_flag == k-1:
                     flag+=1
             if flag == k:
-                candidates.append(result)
+                candidates.append(merged_pattern)
         i+=1
     
     return list(set(candidates))
 
 # check whether candidate is frequent or not
 # and gather frequent patterns into one list
-def frequent_filter(txns, min_sup, candidates):
-    num_txn = len(txns)
-    patterns = {}
+def frequent_filter(TDB, min_sup, candidates):
+    num_txn = len(TDB)
+    frequent_patterns = {}
     cnt = {}
-    for txn in txns:
+    for txn in TDB:
         for pattern in candidates:
             flag = len(pattern)
             for item in pattern:
-                if item in txn:
+                if search(txn, item):
                     flag -= 1
 
             if flag != 0:
@@ -89,28 +97,29 @@ def frequent_filter(txns, min_sup, candidates):
 
     for pattern in cnt:
         if cnt[pattern]/num_txn*100 >= min_sup:
-            patterns[pattern] = cnt[pattern]
+            frequent_patterns[pattern] = cnt[pattern]
 
-    return patterns
+    return frequent_patterns
 
 # master APRIORI process
 # using all functions above, it returns all frequent patterns
-def APRIORI_process(txns, min_sup, initial_patterns):
-    num_txn = len(txns)
-    patterns = initial_patterns
-    result = {}
+def APRIORI_process(TDB, min_sup):
+    now_frequent_set = get_frequent_1_itemset(TDB, min_sup)
+    frequent_patterns = {}
     k = 1
-    while len(patterns) > 0:
+    while len(now_frequent_set) > 0:
         k+=1
-        candidates = get_candidate(list(patterns.keys()), k)
-        result.update(patterns)
-        patterns = frequent_filter(txns, min_sup, candidates)
+        candidates = get_candidate(list(now_frequent_set.keys()), k)
+        frequent_patterns.update(now_frequent_set)
+        now_frequent_set = frequent_filter(TDB, min_sup, candidates)
 
-    return result
+    return frequent_patterns
 
-def get_association_rules(txns, frequent_patterns):
-    num_txn = len(txns)
-    result = []
+# get association rules from frequent_patterns
+# using bitmask to find all possible subsets
+def get_association_rules(TDB, frequent_patterns):
+    num_txn = len(TDB)
+    association_rules = []
     for pattern in frequent_patterns:
         for bitmask in range(1<<len(pattern)):
             loop = 0
@@ -127,11 +136,12 @@ def get_association_rules(txns, frequent_patterns):
                 continue
             support = frequent_patterns[pattern]/num_txn*100
             confidence = frequent_patterns[pattern]/frequent_patterns[sub1]*100
-            analysis = (sub1, sub2, support, confidence)
-            result.append(analysis)
+            association = (sub1, sub2, support, confidence)
+            association_rules.append(association)
     
-    return result
+    return association_rules
 
+# formatting function for item set
 def set_to_str(item_set):
     formatted = '{'
     for item in item_set:
@@ -142,16 +152,17 @@ def set_to_str(item_set):
 
     return formatted
 
-def output_process(filename, associations):
+#write output file
+def output_process(filename, association_rules):
     file = open(filename, mode='w')
-    for assoc in associations:
-        line = set_to_str(assoc[0])
+    for association in association_rules:
+        line = set_to_str(association[0])
         line += '\t'
-        line += set_to_str(assoc[1])
+        line += set_to_str(association[1])
         line += '\t'
-        line += '%.2f' % (assoc[2])
+        line += '%.2f' % (association[2])
         line += '\t'
-        line += '%.2f' % (assoc[3])
+        line += '%.2f' % (association[3])
         line += '\n'
 
         file.write(line)
@@ -159,12 +170,14 @@ def output_process(filename, associations):
 def main(argv):
     if len(argv)<4:
         print('PLEASE, give 3 arguments (minimum support, input filename, output filename)')
-        return;
+        return
     
-    txns = input_process(argv[2])
-    frequent_patterns = APRIORI_process(txns, float(argv[1]), get_frequent_1_itemset(txns, float(argv[1])))
-    associations = get_association_rules(txns, frequent_patterns)
-    output_process(argv[3], associations)
+    TDB = input_process(argv[2])
+    start = time.time()
+    frequent_patterns = APRIORI_process(TDB, float(argv[1]))
+    association_rules = get_association_rules(TDB, frequent_patterns)
+    print('Apriori Time:', time.time()-start)
+    output_process(argv[3], association_rules)
 
 if __name__ == '__main__':
     main(sys.argv)
