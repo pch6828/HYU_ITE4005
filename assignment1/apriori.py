@@ -166,6 +166,7 @@ def output_process(filename, association_rules):
         line += '\n'
 
         file.write(line)
+    file.close()
            
 def main(argv):
     if len(argv)<4:
