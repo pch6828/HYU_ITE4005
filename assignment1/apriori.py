@@ -22,6 +22,20 @@ def input_process(filename):
 def search(arr, x):
     idx = bisect_left(arr, x)
     return idx!=len(arr) and arr[idx]==x
+
+def having(A, B):
+    i = 0
+    size = len(A)
+    for item in B:
+        while True:
+            if i == size or A[i] > item:
+                return False
+            elif A[i] == item:
+                i+=1    
+                break
+            elif A[i] < item:
+                i+=1
+    return True
         
 
 # get initial frequent pattern set
@@ -62,11 +76,7 @@ def get_candidate(frequent_patterns, k):
                 continue
             flag = 0
             for pattern in frequent_patterns:
-                temp_flag = 0
-                for item in merged_pattern:
-                    if search(pattern, item):
-                        temp_flag+=1
-                if temp_flag == k-1:
+                if having(merged_pattern, pattern):
                     flag+=1
             if flag == k:
                 candidates.append(merged_pattern)
@@ -82,12 +92,7 @@ def frequent_filter(TDB, min_sup, candidates):
     cnt = {}
     for txn in TDB:
         for pattern in candidates:
-            flag = len(pattern)
-            for item in pattern:
-                if search(txn, item):
-                    flag -= 1
-
-            if flag != 0:
+            if not having(txn, pattern):
                 continue
             
             if not (pattern in cnt):
