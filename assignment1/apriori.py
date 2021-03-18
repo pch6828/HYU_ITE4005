@@ -18,11 +18,8 @@ def input_process(filename):
     file.close()
     return TDB
 
-# binary search in sorted list
-def search(arr, x):
-    idx = bisect_left(arr, x)
-    return idx!=len(arr) and arr[idx]==x
-
+# determine whether B is subset of A
+# using two pointer algorithm, its complexity is O(|A|)
 def having(A, B):
     i = 0
     size = len(A)
