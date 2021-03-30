@@ -97,7 +97,7 @@ def input_training_set(filename):
     file = open(filename)
     
     attributes = np.array(file.readline().strip().split('\t'))
-    class_labels = set()
+    class_labels = []
     training_set = []
 
     while True:
@@ -105,11 +105,12 @@ def input_training_set(filename):
         if not line:
             break
         data = np.array(line.strip().split('\t'))
-        class_labels.add(data[-1])
+        class_labels.append(data[-1])
         training_set.append(data)
     
     training_set = np.array(training_set)
-    
+    class_labels = np.unique(class_labels)
+    class_labels.sort()
     file.close()
     
     return attributes, class_labels, training_set
