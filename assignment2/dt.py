@@ -10,9 +10,6 @@ class DT:
         self.mask.update(mask)
         self.class_label = None
 
-    def is_leaf(self):
-        return len(self.child)==0
-
     def entropy_of(self, class_labels, data_set):
         entropy = 0
         data_labels = data_set.T[-1]
@@ -156,8 +153,14 @@ def main(argv):
     attributes, class_labels, training_set = input_training_set(argv[1])
     
     sys.setrecursionlimit(max(attributes.size*10, 10000))
+    train_start = time.time()
     decision_tree = build_decision_tree(attributes, class_labels, training_set)
+    train_end = time.time()
+    print('Building Time : %f sec' % (train_end-train_start))
+    test_start = time.time()
     test_and_output(attributes, decision_tree, argv[2], argv[3])
+    test_end = time.time()
+    print('Testing Time : %f sec' % (test_end-test_start))
 
 if __name__ == '__main__':
     main(sys.argv)
