@@ -131,6 +131,8 @@ def input_training_set(filename):
     
     return attributes, class_labels, training_set
 
+# master Decision Tree Building Process
+# using DT class, it returns a Decision Tree instance
 def build_decision_tree(attributes, class_labels, training_set):
     decision_tree = DT(set())
 
