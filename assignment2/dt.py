@@ -2,7 +2,10 @@ import sys
 import time
 import numpy as np
 
+# Decision Tree Class
 class DT:
+    # Constructor
+    # mask is set of already used attribute index
     def __init__(self, mask):
         self.child = {}
         self.attr_idx = None
@@ -12,6 +15,7 @@ class DT:
         self.majority_threshold = 0.8
         self.pruning_threshold = 0.05
 
+    # evaluate entropy of dataset
     def entropy_of(self, class_labels, data_set):
         entropy = 0
         data_labels = data_set.T[-1]
@@ -23,6 +27,7 @@ class DT:
 
         return -entropy
 
+    # evaluate entropy of splited dataset
     def entropy_with_attr_of(self, class_labels, data_set, attr_idx):
         entropy = 0
         attr_values = np.unique(data_set.T[attr_idx])
@@ -34,6 +39,8 @@ class DT:
 
         return entropy
     
+    # majority voting
+    # return major class label and its ratio
     def major_label_of(self, class_labels, data_set):
         major_label = None
         max_cnt = 0
@@ -46,6 +53,8 @@ class DT:
 
         return major_label, max_cnt/data_labels.size
 
+    # construct Decision Tree recursively
+    # pruning with majority_threshold and pruning_threshold
     def construct(self, attributes, class_labels, data_set):
         if self.entropy_of(class_labels, data_set) == 0:
             self.class_label = data_set[0][-1]
@@ -84,6 +93,7 @@ class DT:
             new_leaf.construct(attributes, class_labels, data_subset)
             self.child[attr] = new_leaf
 
+    # predict unknown class label of given data
     def classify(self, data):
         if self.attr_idx == None:
             return self.class_label
