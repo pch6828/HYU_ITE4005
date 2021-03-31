@@ -9,6 +9,8 @@ class DT:
         self.mask = set()
         self.mask.update(mask)
         self.class_label = None
+        self.majority_threshold = 0.8
+        self.pruning_threshold = 0.05
 
     def entropy_of(self, class_labels, data_set):
         entropy = 0
@@ -42,15 +44,15 @@ class DT:
                 max_cnt = cnt
                 major_label = label
 
-        return major_label
+        return major_label, max_cnt/data_labels.size
 
     def construct(self, attributes, class_labels, data_set):
         if self.entropy_of(class_labels, data_set) == 0:
             self.class_label = data_set[0][-1]
             return
         
-        self.class_label = self.major_label_of(class_labels, data_set)
-        if len(self.mask) == attributes.size - 1:
+        self.class_label, ratio = self.major_label_of(class_labels, data_set)
+        if len(self.mask) == attributes.size - 1 or ratio > self.majority_threshold:
             return
 
         test_attr_idx = None
@@ -74,6 +76,9 @@ class DT:
         
         for attr in attr_values:
             data_subset = data_set[data_set.T[test_attr_idx]==attr]
+            subset_ratio = data_subset.shape[0]/data_set.shape[0]
+            if subset_ratio < self.pruning_threshold:
+                continue
             new_leaf = DT(new_mask)
 
             new_leaf.construct(attributes, class_labels, data_subset)
@@ -90,6 +95,10 @@ class DT:
 
         return self.child[attr].classify(data)
 
+# read input file
+# Since DT algorithm in this source code is using vector operation with numpy,
+# Dataset is parsed to numpy array
+# To eliminate randomness, class labels are sorted
 def input_training_set(filename):
     file = open(filename)
     
@@ -119,6 +128,7 @@ def build_decision_tree(attributes, class_labels, training_set):
     
     return decision_tree
 
+# formatting function for numpy array with string
 def array_to_str(arr):
     result = ''
     for s in arr:
@@ -129,6 +139,7 @@ def array_to_str(arr):
 
     return result
 
+# read test file and write test result to output file
 def test_and_output(attributes, decision_tree, test_filename, output_filename): 
     test_file = open(test_filename)
     output_file = open(output_filename, mode='w')
@@ -146,6 +157,9 @@ def test_and_output(attributes, decision_tree, test_filename, output_filename):
         data = np.append(data, class_label)
         output_file.write(array_to_str(data))
     
+    test_file.close()
+    output_file.close()
+
 def main(argv):
     if len(argv)<4:
         print('PLEASE, give 3 arguments (training filename, test filename, output filename)')
