@@ -30,14 +30,16 @@ class Recommender:
             idx+=1
     
     def train(self, num_iterations = 50):
-        self.U = np.random.normal(size=(self.num_user, self.f))
-        self.V = np.random.normal(size=(self.num_item, self.f))
-       
+        self.U = np.random.normal(scale=0.1, size=(self.num_user, self.f))
+        self.V = np.random.normal(scale=0.1, size=(self.num_item, self.f))
+
         self.U_bias = np.zeros(self.num_user)
         self.V_bias = np.zeros(self.num_item)
+
         self.bias = self.rating_matrix[self.rating_matrix != 0].mean()
-        
+
         for _ in range(num_iterations):
+            np.random.shuffle(self.idx)
             for user_id, item_id in self.idx:
                 predicted_rating = self.predict(user_id, item_id)
                 rating = self.rating_matrix[user_id][item_id]
@@ -53,7 +55,6 @@ class Recommender:
                 self.U[user_id] += self.learning_rate * dU
                 self.V[item_id] += self.learning_rate * dV
         
-
     def predict(self, user_id, item_id):
         return self.bias + self.U_bias[user_id] + self.V_bias[item_id] + np.dot(self.U[user_id], self.V[item_id])
 
@@ -72,9 +73,9 @@ class Recommender:
                 if item_id in self.item_idx_map:
                     item_idx = self.item_idx_map[item_id]
 
-                    predicted_rating = min(5, max(0, predicted_matrix[user_idx][item_idx]))
+                    predicted_rating = min(5, max(1, predicted_matrix[user_idx][item_idx]))
                 else:
-                    predicted_rating = self.bias
+                    predicted_rating = min(5, max(1, predicted_matrix[user_idx].mean()))
             else:
                 predicted_rating = self.bias
 
@@ -114,7 +115,7 @@ def main(argv):
                                    columns='item_id', 
                                    values='rating').fillna(0)
     
-    recommender = Recommender(rating_matrix, 10, 0.1, 0.01)
+    recommender = Recommender(rating_matrix, 10, 0.005, 0.05)
     start_time = time.time()
     recommender.train()
     end_time = time.time()
