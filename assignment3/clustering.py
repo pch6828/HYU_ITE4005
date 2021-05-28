@@ -74,8 +74,11 @@ class DBSCAN:
 
         return clusters
 
-def output_process(file_prefix, clusters):
-    for cluster_id, cluster in enumerate(clusters):
+def output_process(file_prefix, clusters, n):
+    for cluster_id in range(n):
+        cluster = []
+        if cluster_id < len(clusters):
+            cluster = clusters[cluster_id]
         filename = file_prefix+'_cluster_'+str(cluster_id)+'.txt'
         file = open(filename, mode='w')
 
@@ -101,7 +104,7 @@ def main(argv):
     
     print('DBSCAN Time :', end_time - start_time)
 
-    output_process(file_prefix, clusters)
+    output_process(file_prefix, clusters, int(argv[2]))
 
 if __name__ == '__main__':
     main(sys.argv)
