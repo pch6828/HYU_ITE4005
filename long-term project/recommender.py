@@ -3,16 +3,18 @@ import time
 import numpy as np
 import pandas as pd
 
+# Recommender System Class (Matrix Multiplication)
 class Recommender:
-    def __init__(self, rating_matrix, f, learning_rate, reg):
+    # Constructor
+    def __init__(self, rating_matrix, factor, learning_rate, regularization):
         self.rating_matrix = rating_matrix.values
         self.idx = np.array(self.rating_matrix.nonzero()).T
         self.n = self.idx.size
 
         self.num_user = rating_matrix.shape[0]
         self.num_item = rating_matrix.shape[1]
-        self.f = f
-        self.reg = reg
+        self.factor = factor
+        self.regularization = regularization
         
         self.learning_rate = learning_rate
 
@@ -29,9 +31,11 @@ class Recommender:
             self.item_idx_map[item_id] = idx
             idx+=1
     
+    # Training Function
+    # using Gradient Descent
     def train(self, num_iterations = 50):
-        self.U = np.random.normal(scale=0.1, size=(self.num_user, self.f))
-        self.V = np.random.normal(scale=0.1, size=(self.num_item, self.f))
+        self.U = np.random.normal(scale=0.1, size=(self.num_user, self.factor))
+        self.V = np.random.normal(scale=0.1, size=(self.num_item, self.factor))
 
         self.U_bias = np.zeros(self.num_user)
         self.V_bias = np.zeros(self.num_item)
@@ -46,18 +50,20 @@ class Recommender:
 
                 error = rating - predicted_rating
 
-                self.U_bias[user_id] += self.learning_rate * (error - self.reg * self.U_bias[user_id])
-                self.V_bias[item_id] += self.learning_rate * (error - self.reg * self.V_bias[item_id])
+                self.U_bias[user_id] += self.learning_rate * (error - self.regularization * self.U_bias[user_id])
+                self.V_bias[item_id] += self.learning_rate * (error - self.regularization * self.V_bias[item_id])
 
-                dU = error * self.V[item_id] - self.reg * self.U[user_id]
-                dV = error * self.U[user_id] - self.reg * self.V[item_id]
+                dU = error * self.V[item_id] - self.regularization * self.U[user_id]
+                dV = error * self.U[user_id] - self.regularization * self.V[item_id]
                 
                 self.U[user_id] += self.learning_rate * dU
                 self.V[item_id] += self.learning_rate * dV
-        
+
+    # prediction function for single user-item pair   
     def predict(self, user_id, item_id):
         return self.bias + self.U_bias[user_id] + self.V_bias[item_id] + np.dot(self.U[user_id], self.V[item_id])
 
+    # test function
     def test(self, test_dataset):
         result = []
         predicted_matrix = self.bias + np.array([self.U_bias]).T + np.array([self.V_bias]) + np.dot(self.U, self.V.T)
@@ -83,6 +89,9 @@ class Recommender:
         
         return result
 
+# read input file(training file, test file)
+# it is just wrapper or pandas read_csv
+# it adds some column names
 def read_data(filename):
     df = pd.read_csv(filename, 
                      sep='\t', 
@@ -91,6 +100,7 @@ def read_data(filename):
 
     return df
 
+# write test result to output file
 def output_process(filename, test_dataset, test_result):
     file = open(filename, mode='w')
     
