@@ -18,34 +18,44 @@ class DBSCAN:
         self.adjacent_list = {}
     
     def set_data(self, filename):
+        start_time = time.time()
         data_set = pd.read_csv(filename, 
-                     sep='\t', 
-                     header=None).values
+                               sep='\t', 
+                               header=None).values
 
-        points = {}
+        sort_idx = data_set.T[1].argsort()
+        data_set = data_set[sort_idx]
 
+        points = []
         for obj in data_set:
             obj_id = int(obj[0])
             obj_point = np.array([obj[1], obj[2]])
             self.adjacent_list[obj_id] = []
 
-            for neighbor_id in points:
-                neighbor_point = points[neighbor_id]
+            for neighbor_obj in reversed(points):
+                neighbor_id = neighbor_obj[0]
+                neighbor_point = neighbor_obj[1]
+                if obj_point[0] - neighbor_point[0]  > self.EPS:
+                    break
 
                 if distance(obj_point, neighbor_point) <= self.EPS:
                     self.adjacent_list[obj_id].append(neighbor_id)
                     self.adjacent_list[neighbor_id].append(obj_id)
             
-            points[obj_id] = obj_point
+            points.append((obj_id, obj_point))
+            
+        end_time = time.time()
+        print('Data Handling Time :', end_time - start_time)
+
     
     def get_clusters(self):
         clusters = []
         
         visited = set()
         queue = deque([])
-
+        start_time = time.time()
         for obj_id in self.adjacent_list:
-            if obj_id in visited or len(self.adjacent_list[obj_id]) < self.MinPTS:
+            if obj_id in visited or len(self.adjacent_list[obj_id]) + 1 < self.MinPTS:
                 continue
 
             now_cluster = [obj_id]
@@ -59,7 +69,7 @@ class DBSCAN:
                     if not (nxt in visited):
                         visited.add(nxt)
                         now_cluster.append(nxt)
-                        if len(self.adjacent_list[nxt]) >= self.MinPTS:
+                        if len(self.adjacent_list[nxt]) + 1 >= self.MinPTS:
                             queue.append(nxt)
 
             clusters.append(now_cluster)
@@ -71,7 +81,10 @@ class DBSCAN:
 
         while len(clusters) > self.N:
             del clusters[-1]
-
+        
+        end_time = time.time()
+        
+        print('Traning Time :', end_time - start_time)
         return clusters
 
 def output_process(file_prefix, clusters, n):
