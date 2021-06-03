@@ -5,11 +5,14 @@ from collections import deque
 import numpy as np
 import pandas as pd
 
+# get distance of two points
 def distance(p1, p2):
     v = p1-p2
     return np.sqrt(np.dot(v, v))
 
+# DBSCAN clustering algorithm class
 class DBSCAN:
+    # Constructor
     def __init__(self, N, EPS, MinPTS):
         self.N = N
         self.EPS = EPS
@@ -17,6 +20,7 @@ class DBSCAN:
 
         self.adjacent_list = {}
     
+    # read data and make adjacency list with this data
     def set_data(self, filename):
         start_time = time.time()
         data_set = pd.read_csv(filename, 
@@ -47,7 +51,8 @@ class DBSCAN:
         end_time = time.time()
         print('Data Handling Time :', end_time - start_time)
 
-    
+    # Get cluster 
+    # with BFS algorithm
     def get_clusters(self):
         clusters = []
         
@@ -87,6 +92,7 @@ class DBSCAN:
         print('Traning Time :', end_time - start_time)
         return clusters
 
+# write clustering result to output file
 def output_process(file_prefix, clusters, n):
     for cluster_id in range(n):
         cluster = []
