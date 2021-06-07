@@ -1,5 +1,6 @@
 import sys
 import time
+from os import path
 import numpy as np
 import pandas as pd
 
@@ -133,7 +134,7 @@ def main(argv):
     
     start_time = time.time()
     test_result = recommender.test(test_dataset)
-    output_process(argv[1]+'_prediction.txt', test_dataset, test_result)
+    output_process('./' + path.splitext(path.basename(argv[2]))[0]+'.base_prediction.txt', test_dataset, test_result)
     end_time = time.time()
     print('Test and Output Time : ', end_time-start_time)
 
